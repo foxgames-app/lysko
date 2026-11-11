@@ -76,6 +76,25 @@ class CatalogTest(unittest.TestCase):
         finally:
             os.unlink(f.name)
 
+    def test_long_package(self):
+        def m(d):
+            pkg = "a." + "b" * 153
+            d["apps"][0]["android"] = {"package": pkg, "url": f"https://play.google.com/store/apps/details?id={pkg}"}
+        self.bad(m)
+
+    def test_emoji_length_utf16(self):
+        self.bad(lambda d: d["apps"][0]["name"].update(en="\U0001F98A" * 21))
+
+    def test_nan_constant(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            f.write('{"schema":1,"x":NaN,"apps":[]}')
+        try:
+            with self.assertRaises(ValueError):
+                ac.load(f.name)
+        finally:
+            os.unlink(f.name)
+
     def test_unknown_key(self):
         self.bad(lambda d: d["apps"][0].update(tracking="x"))
 

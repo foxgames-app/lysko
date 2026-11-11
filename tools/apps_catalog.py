@@ -52,7 +52,14 @@ def load(path):
     raw = open(path, "rb").read()
     if len(raw) > MAX_BYTES:
         raise ValueError(f"apps.json over {MAX_BYTES} bytes")
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys)
+    def _bad_const(c):
+        raise ValueError(f"non-standard JSON constant {c}")
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys, parse_constant=_bad_const)
+
+
+def u16len(v):
+    """length as the game counts it (C# string = UTF-16 code units)"""
+    return len(v.encode("utf-16-le")) // 2
 
 
 def validate(doc):
@@ -97,7 +104,7 @@ def validate(doc):
         an = a.get("android")
         if an is not None:
             pkg = an.get("package") if isinstance(an, dict) else None
-            if not isinstance(pkg, str) or not PKG_RE.fullmatch(pkg):
+            if not isinstance(pkg, str) or len(pkg) > 150 or not PKG_RE.fullmatch(pkg):
                 errs.append(f"{p}: android.package invalid")
             elif an.get("url") != f"https://play.google.com/store/apps/details?id={pkg}":
                 errs.append(f"{p}: android.url must be https://play.google.com/store/apps/details?id={pkg}")
@@ -116,7 +123,7 @@ def validate(doc):
                 errs.append(f"{p}: {key} must be an object of languages"); continue
             for lang in LANGS:
                 v = d.get(lang)
-                if (not isinstance(v, str) or not v.strip() or len(v) > maxlen or "<" in v or ">" in v
+                if (not isinstance(v, str) or not v.strip() or u16len(v) > maxlen or "<" in v or ">" in v
                         or any(unicodedata.category(c) == "Cc" for c in v)):
                     errs.append(f"{p}: {key}.{lang} missing, too long (>{maxlen}), control chars or < >")
             extra = set(d) - set(LANGS)
