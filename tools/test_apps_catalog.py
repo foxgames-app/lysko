@@ -105,6 +105,17 @@ class CatalogTest(unittest.TestCase):
         finally:
             os.unlink(f.name)
 
+    def test_oversized_integer_rejected(self):
+        import tempfile
+        for tok in ("1" + "0" * 309, "-1" + "0" * 309):
+            with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+                f.write('{"schema":1,"x":%s,"apps":[]}' % tok)
+            try:
+                with self.assertRaises(ValueError):
+                    ac.load(f.name)
+            finally:
+                os.unlink(f.name)
+
     def test_unknown_key(self):
         self.bad(lambda d: d["apps"][0].update(tracking="x"))
 

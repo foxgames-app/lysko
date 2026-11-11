@@ -59,7 +59,15 @@ def load(path):
         if v != v or v in (float("inf"), float("-inf")):
             raise ValueError(f"number out of range {x}")
         return v
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys, parse_constant=_bad_const, parse_float=_finite)
+    def _finite_int(x):
+        # the game parses every number with double.TryParse: an integer beyond the double range makes it reject the file
+        try:
+            float(int(x))
+        except OverflowError:
+            raise ValueError(f"number out of range {x[:20]}...")
+        return int(x)
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys, parse_constant=_bad_const, parse_float=_finite,
+                      parse_int=_finite_int)
 
 
 def u16len(v):
