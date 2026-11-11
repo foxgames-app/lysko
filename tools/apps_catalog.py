@@ -13,14 +13,17 @@ import os
 import re
 import struct
 import sys
+import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LANGS = ["en", "uk", "fr", "de", "es", "pt"]
 LANG_NAMES = {"en": "English", "uk": "Українська", "fr": "Français", "de": "Deutsch", "es": "Español", "pt": "Português"}
 PAGE_BASE = "https://foxgames-app.github.io/lysko/"
-ICON_RE = re.compile(r"^https://foxgames-app\.github\.io/lysko/apps/[a-z0-9_]+\.png$")
-ID_RE = re.compile(r"^[a-z0-9_]{1,40}$")
-PKG_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$")
+# same limits as the game's reader (Lysko Wash KidsCatalog.cs): fullmatch, 64 KB, 30 apps, name 40 / text 90 chars
+ICON_RE = re.compile(r"https://foxgames-app\.github\.io/lysko/apps/[a-z0-9_]{1,60}\.png")
+ID_RE = re.compile(r"[a-z0-9_]{1,40}")
+PKG_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+")
+MAX_BYTES, MAX_APPS = 64 * 1024, 30
 SOON = {"en": "Coming soon", "uk": "Незабаром", "fr": "Bientôt", "de": "Demnächst", "es": "Próximamente", "pt": "Em breve"}
 TITLE = {"en": "Our games", "uk": "Наші ігри", "fr": "Nos jeux", "de": "Unsere Spiele", "es": "Nuestros juegos", "pt": "Nossos jogos"}
 LINKS = {"en": ("Google Play", "App Store"), "uk": ("Google Play", "App Store"), "fr": ("Google Play", "App Store"),
@@ -35,20 +38,40 @@ def png_size(path):
     return struct.unpack(">II", head[16:24])
 
 
+def _no_dup_keys(pairs):
+    d = {}
+    for k, v in pairs:
+        if k in d:
+            raise ValueError(f"duplicate key {k!r}")
+        d[k] = v
+    return d
+
+
+def load(path):
+    """strict load: size cap, UTF-8, no duplicate keys (the game rejects such files)"""
+    raw = open(path, "rb").read()
+    if len(raw) > MAX_BYTES:
+        raise ValueError(f"apps.json over {MAX_BYTES} bytes")
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys)
+
+
 def validate(doc):
     errs = []
-    if not isinstance(doc, dict) or doc.get("schema") != 1:
+    sch = doc.get("schema") if isinstance(doc, dict) else None
+    if type(sch) is not int or sch != 1:
         return ["top level: object with \"schema\": 1 required"]
     apps = doc.get("apps")
     if not isinstance(apps, list) or not apps:
         return ["\"apps\" must be a non-empty list"]
+    if len(apps) > MAX_APPS:
+        errs.append(f"more than {MAX_APPS} apps (the game reads only the first {MAX_APPS})")
     seen = set()
     for i, a in enumerate(apps):
         p = f"apps[{i}]"
         if not isinstance(a, dict):
             errs.append(f"{p}: not an object"); continue
         aid = a.get("id")
-        if not isinstance(aid, str) or not ID_RE.match(aid):
+        if not isinstance(aid, str) or not ID_RE.fullmatch(aid):
             errs.append(f"{p}: bad id {aid!r}")
         elif aid in seen:
             errs.append(f"{p}: duplicate id {aid}")
@@ -56,7 +79,7 @@ def validate(doc):
         if not isinstance(a.get("coming_soon"), bool):
             errs.append(f"{p}: coming_soon must be true/false")
         icon = a.get("icon")
-        if not isinstance(icon, str) or not ICON_RE.match(icon):
+        if not isinstance(icon, str) or not ICON_RE.fullmatch(icon):
             errs.append(f"{p}: icon must be {PAGE_BASE}apps/<name>.png")
         else:
             local = os.path.join(ROOT, icon[len(PAGE_BASE):])
@@ -74,7 +97,7 @@ def validate(doc):
         an = a.get("android")
         if an is not None:
             pkg = an.get("package") if isinstance(an, dict) else None
-            if not isinstance(pkg, str) or not PKG_RE.match(pkg):
+            if not isinstance(pkg, str) or not PKG_RE.fullmatch(pkg):
                 errs.append(f"{p}: android.package invalid")
             elif an.get("url") != f"https://play.google.com/store/apps/details?id={pkg}":
                 errs.append(f"{p}: android.url must be https://play.google.com/store/apps/details?id={pkg}")
@@ -93,8 +116,9 @@ def validate(doc):
                 errs.append(f"{p}: {key} must be an object of languages"); continue
             for lang in LANGS:
                 v = d.get(lang)
-                if not isinstance(v, str) or not v.strip() or len(v) > maxlen or "<" in v or ">" in v:
-                    errs.append(f"{p}: {key}.{lang} missing, too long (>{maxlen}) or contains < >")
+                if (not isinstance(v, str) or not v.strip() or len(v) > maxlen or "<" in v or ">" in v
+                        or any(unicodedata.category(c) == "Cc" for c in v)):
+                    errs.append(f"{p}: {key}.{lang} missing, too long (>{maxlen}), control chars or < >")
             extra = set(d) - set(LANGS)
             if extra:
                 errs.append(f"{p}: {key} has unknown languages {sorted(extra)}")
@@ -139,8 +163,10 @@ def render(doc):
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
-    with open(os.path.join(ROOT, "apps.json"), encoding="utf-8") as f:
-        doc = json.load(f)
+    try:
+        doc = load(os.path.join(ROOT, "apps.json"))
+    except ValueError as e:
+        print(f"apps.json INVALID: {e}"); return 1
     errs = validate(doc)
     if errs:
         print("apps.json INVALID:\n  " + "\n  ".join(errs)); return 1

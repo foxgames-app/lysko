@@ -11,6 +11,7 @@ import apps_catalog as ac  # noqa: E402
 
 with open(os.path.join(ac.ROOT, "apps.json"), encoding="utf-8") as f:
     DOC = json.load(f)
+DOC = ac.load(os.path.join(ac.ROOT, "apps.json"))
 
 
 class CatalogTest(unittest.TestCase):
@@ -49,6 +50,31 @@ class CatalogTest(unittest.TestCase):
 
     def test_duplicate_id(self):
         self.bad(lambda d: d["apps"].append(copy.deepcopy(d["apps"][0])))
+
+    def test_schema_bool(self):
+        self.bad(lambda d: d.update(schema=True))
+
+    def test_control_char(self):
+        self.bad(lambda d: d["apps"][0]["name"].update(en="Ly\u0007sko"))
+
+    def test_id_trailing_newline(self):
+        self.bad(lambda d: d["apps"][0].update(id="lysko\n"))
+
+    def test_too_many_apps(self):
+        def m(d):
+            for i in range(31):
+                a = copy.deepcopy(d["apps"][0]); a["id"] = f"a{i}"; d["apps"].append(a)
+        self.bad(m)
+
+    def test_duplicate_json_key(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            f.write('{"schema":1,"schema":1,"apps":[]}')
+        try:
+            with self.assertRaises(ValueError):
+                ac.load(f.name)
+        finally:
+            os.unlink(f.name)
 
     def test_unknown_key(self):
         self.bad(lambda d: d["apps"][0].update(tracking="x"))
