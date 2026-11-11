@@ -95,6 +95,16 @@ class CatalogTest(unittest.TestCase):
         finally:
             os.unlink(f.name)
 
+    def test_overflow_number(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            f.write('{"schema":1,"x":1e999,"apps":[]}')
+        try:
+            with self.assertRaises(ValueError):
+                ac.load(f.name)
+        finally:
+            os.unlink(f.name)
+
     def test_unknown_key(self):
         self.bad(lambda d: d["apps"][0].update(tracking="x"))
 

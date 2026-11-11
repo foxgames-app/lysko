@@ -54,7 +54,12 @@ def load(path):
         raise ValueError(f"apps.json over {MAX_BYTES} bytes")
     def _bad_const(c):
         raise ValueError(f"non-standard JSON constant {c}")
-    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys, parse_constant=_bad_const)
+    def _finite(x):
+        v = float(x)
+        if v != v or v in (float("inf"), float("-inf")):
+            raise ValueError(f"number out of range {x}")
+        return v
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=_no_dup_keys, parse_constant=_bad_const, parse_float=_finite)
 
 
 def u16len(v):
