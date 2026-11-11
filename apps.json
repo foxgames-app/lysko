@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "updated": "2026-11-11",
+  "apps": [
+    {
+      "id": "lysko",
+      "coming_soon": false,
+      "icon": "https://foxgames-app.github.io/lysko/apps/lysko.png",
+      "android": {
+        "package": "app.foxgames.foxGames",
+        "url": "https://play.google.com/store/apps/details?id=app.foxgames.foxGames"
+      },
+      "ios": null,
+      "name": {
+        "en": "Lysko: Toddler Games 2-4",
+        "uk": "Лисько: ігри для малюків 2-4",
+        "fr": "Lysko : jeux tout-petits 2-4",
+        "de": "Lysko: Kleinkindspiele 2-4",
+        "es": "Lysko: juegos para niños 2-4",
+        "pt": "Lysko: jogos infantis 2-4"
+      },
+      "text": {
+        "en": "15 gentle games with a little fox for ages 2-4.",
+        "uk": "15 лагідних ігор з лисеням для дітей 2–4 років.",
+        "fr": "15 jeux tout doux avec un petit renard, de 2 à 4 ans.",
+        "de": "15 sanfte Spiele mit einem kleinen Fuchs für 2- bis 4-Jährige.",
+        "es": "15 juegos tranquilos con un pequeño zorro, de 2 a 4 años.",
+        "pt": "15 jogos tranquilos com uma raposinha, de 2 a 4 anos."
+      }
+    },
+    {
+      "id": "lysko_wash",
+      "coming_soon": true,
+      "icon": "https://foxgames-app.github.io/lysko/apps/lysko_wash.png",
+      "android": null,
+      "ios": null,
+      "name": {
+        "en": "Lysko Wash",
+        "uk": "Лисько: мийка",
+        "fr": "Lysko Wash",
+        "de": "Lysko Wash",
+        "es": "Lysko Wash",
+        "pt": "Lysko Wash"
+      },
+      "text": {
+        "en": "Wash 20 dirty toys with foam, a sponge and water.",
+        "uk": "Помий 20 брудних іграшок піною, губкою та водою.",
+        "fr": "Lave 20 jouets sales avec de la mousse, une éponge et de l'eau.",
+        "de": "Wasche 20 schmutzige Spielsachen mit Schaum, Schwamm und Wasser.",
+        "es": "Lava 20 juguetes sucios con espuma, una esponja y agua.",
+        "pt": "Lave 20 brinquedos sujos com espuma, esponja e água."
+      }
+    }
+  ]
+}
