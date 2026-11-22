@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated": "2026-11-11",
+  "updated": "2026-11-22",
   "apps": [
     {
       "id": "lysko",
@@ -30,9 +30,12 @@
     },
     {
       "id": "lysko_wash",
-      "coming_soon": true,
+      "coming_soon": false,
       "icon": "https://foxgames-app.github.io/lysko/apps/lysko_wash.png",
-      "android": null,
+      "android": {
+        "package": "app.foxgames.lyskowash",
+        "url": "https://play.google.com/store/apps/details?id=app.foxgames.lyskowash"
+      },
       "ios": null,
       "name": {
         "en": "Lysko Wash",
